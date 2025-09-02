@@ -1,15 +1,54 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export default function Navbar() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userName, setUserName] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      setIsAuthenticated(true);
+      // You could decode the JWT to get user info, but for now we'll just show a generic name
+      setUserName("User");
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    setIsAuthenticated(false);
+    setUserName("");
+    navigate("/login");
+  };
+
   return (
-    <nav className="bg-grey-600 text-white px-4 py-3 flex justify-between items-center shadow">
-      <div className="font-bold text-xl text-black">FinTrack</div>
-      <div className="space-x-4 flex justify-between" >
-        <Link to="/" className="text-black font-semibold">Home</Link>
-        <Link to="/dashboard" className="text-black font-semibold">Dashboard</Link>
-        <Link to="/transactions" className="text-black font-semibold">Transactions</Link>
-        <Link to="/reports" className="text-black font-semibold">Reports</Link>
-        <Link to="/profile"> <img src="./src/assets/images/user.png" alt="user" className="w-5 h-5" /></Link>
+    <nav className="bg-gray-600 text-white px-4 py-3 flex justify-between items-center shadow">
+      <div className="font-bold text-xl text-white">FinTrack</div>
+      <div className="space-x-4 flex items-center">
+        {isAuthenticated ? (
+          <>
+            <Link to="/" className="text-white font-semibold hover:text-gray-200">Home</Link>
+            <Link to="/dashboard" className="text-white font-semibold hover:text-gray-200">Dashboard</Link>
+            <Link to="/transactions" className="text-white font-semibold hover:text-gray-200">Transactions</Link>
+            <Link to="/reports" className="text-white font-semibold hover:text-gray-200">Reports</Link>
+            <div className="flex items-center space-x-3">
+              <span className="text-white text-sm">Welcome, {userName}</span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium"
+              >
+                Logout
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Link to="/" className="text-white font-semibold hover:text-gray-200">Home</Link>
+            <Link to="/login" className="text-white font-semibold hover:text-gray-200">Login</Link>
+            <Link to="/signup" className="text-white font-semibold hover:text-gray-200">Sign Up</Link>
+          </>
+        )}
       </div>
     </nav>
   );
