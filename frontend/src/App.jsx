@@ -20,27 +20,30 @@ function App() {
   return (
     <Router>
       <div className="flex flex-col min-h-screen bg-gray-50">
-        {/* <Navbar /> */}
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
+                <Navbar />
                 <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/transactions" element={
               <ProtectedRoute>
+                <Navbar />
                 <Transactions />
               </ProtectedRoute>
             } />
             <Route path="/reports" element={
               <ProtectedRoute>
+                <Navbar />
                 <Reports />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
               <ProtectedRoute>
+                <Navbar />
                 <Profile />
               </ProtectedRoute>
             } />

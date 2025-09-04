@@ -23,15 +23,15 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-gray-600 text-white px-4 py-3 flex justify-between items-center shadow">
-      <div className="font-bold text-xl text-white">FinTrack</div>
+    <nav className=" bg-black px-4 py-3 flex justify-between items-center shadow">
+      <div className=" text-xl text-white font-semibold">FinTrack</div>
       <div className="space-x-4 flex items-center">
         {isAuthenticated ? (
           <>
-            <Link to="/" className="text-white font-semibold hover:text-gray-200">Home</Link>
-            <Link to="/dashboard" className="text-white font-semibold hover:text-gray-200">Dashboard</Link>
-            <Link to="/transactions" className="text-white font-semibold hover:text-gray-200">Transactions</Link>
-            <Link to="/reports" className="text-white font-semibold hover:text-gray-200">Reports</Link>
+            <Link to="/" className="text-white  hover:text-gray-200">Home</Link>
+            <Link to="/dashboard" className="text-white  hover:text-gray-200">Dashboard</Link>
+            <Link to="/transactions" className="text-white  hover:text-gray-200">Transactions</Link>
+            <Link to="/reports" className="text-white  hover:text-gray-200">Reports</Link>
             <div className="flex items-center space-x-3">
               <span className="text-white text-sm">Welcome, {userName}</span>
               <button
@@ -44,9 +44,9 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            <Link to="/" className="text-white font-semibold hover:text-gray-200">Home</Link>
-            <Link to="/login" className="text-white font-semibold hover:text-gray-200">Login</Link>
-            <Link to="/signup" className="text-white font-semibold hover:text-gray-200">Sign Up</Link>
+            <Link to="/" className="text-white text-base hover:text-gray-200">Home</Link>
+            <Link to="/login" className="text-white text-base  hover:text-gray-200">Login</Link>
+            <Link to="/signup" className="text-white text-base hover:text-gray-200">Sign Up</Link>
           </>
         )}
       </div>
