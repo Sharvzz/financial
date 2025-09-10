@@ -10,8 +10,18 @@ export default function Navbar() {
     const token = localStorage.getItem("access_token");
     if (token) {
       setIsAuthenticated(true);
-      // You could decode the JWT to get user info, but for now we'll just show a generic name
-      setUserName("User");
+      try {
+        const raw = localStorage.getItem("fin_users");
+        const users = raw ? JSON.parse(raw) : [];
+        const user = Array.isArray(users)
+          ? users.find((u) => String(u.email || "").toLowerCase() === String(token).toLowerCase())
+          : null;
+        const nameFallback = String(token).includes("@") ? String(token).split("@")[0] : String(token);
+        setUserName(user?.name || nameFallback || "User");
+      } catch {
+        const nameFallback = String(token).includes("@") ? String(token).split("@")[0] : String(token);
+        setUserName(nameFallback || "User");
+      }
     }
   }, []);
 
