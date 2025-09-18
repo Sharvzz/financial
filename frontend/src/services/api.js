@@ -1,5 +1,6 @@
 // Use relative base in dev so Vite proxy handles CORS; backend base can still be absolute in prod via env
-const API_BASE = "/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+
 
 function getStoredToken() {
   try {
