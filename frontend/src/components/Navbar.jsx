@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import api from "../services/api";
 
 export default function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -7,26 +8,22 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = api.getToken();
     if (token) {
       setIsAuthenticated(true);
       try {
-        const raw = localStorage.getItem("fin_users");
-        const users = raw ? JSON.parse(raw) : [];
-        const user = Array.isArray(users)
-          ? users.find((u) => String(u.email || "").toLowerCase() === String(token).toLowerCase())
-          : null;
-        const nameFallback = String(token).includes("@") ? String(token).split("@")[0] : String(token);
-        setUserName(user?.name || nameFallback || "User");
+        const raw = localStorage.getItem("user");
+        const user = raw ? JSON.parse(raw) : null;
+        setUserName(user?.name || "User");
       } catch {
-        const nameFallback = String(token).includes("@") ? String(token).split("@")[0] : String(token);
-        setUserName(nameFallback || "User");
+        setUserName("User");
       }
     }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
+    api.logout();
+    try { localStorage.removeItem("user"); } catch {}
     setIsAuthenticated(false);
     setUserName("");
     navigate("/login");

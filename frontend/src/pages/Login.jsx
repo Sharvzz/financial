@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import storage from "../services/storage";
+import api from "../services/api";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -13,7 +13,7 @@ export default function Login() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (storage.auth.isAuthenticated()) {
+    if (api.isAuthenticated()) {
       navigate("/dashboard");
     }
   }, [navigate]);
@@ -32,7 +32,10 @@ export default function Login() {
     setMessage({ type: "", text: "" });
 
     try {
-      const data = await storage.auth.login(formData.email, formData.password);
+      const data = await api.login({ email: formData.email, password: formData.password });
+      if (data?.user) {
+        try { localStorage.setItem("user", JSON.stringify(data.user)); } catch {}
+      }
       
       // Show success message
       setMessage({ type: "success", text: "Login successful! Redirecting to dashboard..." });
@@ -43,10 +46,7 @@ export default function Login() {
       }, 1500);
 
     } catch (error) {
-      setMessage({ 
-        type: "error", 
-        text: error.message || "Login failed. Please try again." 
-      });
+      setMessage({ type: "error", text: error.message || "Login failed. Please try again." });
     } finally {
       setIsLoading(false);
     }

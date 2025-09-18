@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import storage from "../services/storage";
+import api from "../services/api";
 
 export default function Dashboard() {
   const [form, setForm] = useState({ type: "expense", amount: "", category: "", description: "" });
@@ -24,7 +24,7 @@ export default function Dashboard() {
 
   // Check if user is authenticated
   useEffect(() => {
-    if (!storage.auth.isAuthenticated()) {
+    if (!api.isAuthenticated()) {
       navigate("/login");
       return;
     }
@@ -35,13 +35,53 @@ export default function Dashboard() {
     setIsLoading(true);
     setError("");
     try {
-      const summaryRes = storage.summary.get("last_30_days");
-      const txRes = storage.transactions.list({ limit: 5 });
-      const expenseCats = storage.categories.list("expense");
-      const incomeCats = storage.categories.list("income");
-      setSummary(summaryRes || null);
-      setTransactions(Array.isArray(txRes) ? txRes : []);
-      setCategories([...(Array.isArray(expenseCats) ? expenseCats : []), ...(Array.isArray(incomeCats) ? incomeCats : [])]);
+      const all = await api.getTransactions();
+      const normalized = Array.isArray(all)
+        ? all.map((t) => ({
+            id: t.id,
+            type: t.type,
+            amount: Number(t.amount),
+            description: t.notes || t.title || "",
+            occurredAt: t.transaction_date || t.created_at || t.createdAt,
+          }))
+        : [];
+      // compute summary for last 30 days
+      const now = new Date();
+      const start = new Date(now.getTime() - 30 * 86400000);
+      const inRange = normalized.filter((t) => new Date(t.occurredAt) >= start && new Date(t.occurredAt) <= now);
+      const monthlyIncome = inRange.filter((t) => t.type === "income").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const monthlyExpenses = inRange.filter((t) => t.type === "expense").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const totalIncome = normalized.filter((t) => t.type === "income").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const totalExpense = normalized.filter((t) => t.type === "expense").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const totalBalance = totalIncome - totalExpense;
+      // trend for last 12 months
+      const months = [];
+      const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+      for (let i = 0; i < 12; i += 1) {
+        const label = `${cursor.getFullYear().toString().padStart(4, "0")}-${(cursor.getMonth() + 1).toString().padStart(2, "0")}`;
+        months.push({ month: label, income: 0, expense: 0 });
+        cursor.setMonth(cursor.getMonth() - 1);
+      }
+      months.reverse();
+      const bucket = Object.fromEntries(months.map((m) => [m.month, m]));
+      for (const t of normalized) {
+        const d = new Date(t.occurredAt);
+        const label = `${d.getFullYear().toString().padStart(4, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+        if (bucket[label]) {
+          if (t.type === "income") bucket[label].income += Number(t.amount) || 0;
+          else if (t.type === "expense") bucket[label].expense += Number(t.amount) || 0;
+        }
+      }
+      const savingsRate = monthlyIncome > 0 ? Math.max(0, 1 - monthlyExpenses / monthlyIncome) : 0;
+      setSummary({
+        totalBalance: Number(totalBalance.toFixed(2)),
+        monthlyIncome: Number(monthlyIncome.toFixed(2)),
+        monthlyExpenses: Number(monthlyExpenses.toFixed(2)),
+        savingsRate: Number(savingsRate.toFixed(3)),
+        trend: months,
+      });
+      setTransactions(normalized.slice(0, 5));
+      setCategories([]);
     } catch (e) {
       setError(e.message || "Failed to load data");
     } finally {
@@ -62,24 +102,20 @@ export default function Dashboard() {
       return;
     }
     try {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const transaction_date = `${yyyy}-${mm}-${dd}`;
       const payload = {
-        type: form.type,
+        title: (form.description || form.category || form.type || "").slice(0, 100) || "Transaction",
         amount: parsedAmount,
-        description: form.description?.trim() || undefined,
+        type: form.type,
+        category: form.category?.trim() || undefined,
+        notes: form.description?.trim() || undefined,
+        transaction_date,
       };
-      // Try match category by name to id
-      const matched = categories.find(
-        (c) => c.type === form.type && c.name.toLowerCase() === form.category.trim().toLowerCase()
-      );
-      if (matched) {
-        payload.categoryId = matched.id;
-      } else if (form.category?.trim()) {
-        payload.categoryName = form.category.trim();
-      }
-      
-      console.log("Submitting transaction:", payload);
-      
-      const response = storage.transactions.add(payload);
+      await api.createTransaction(payload);
       // Clear form first
       setForm({ type: "expense", amount: "", category: "", description: "" });
       
@@ -138,7 +174,7 @@ export default function Dashboard() {
     return category ? category.name : null;
   };
 
-  if (error && !storage.auth.isAuthenticated()) return null;
+  if (error && !api.isAuthenticated()) return null;
 
   return (
     <div className="p-6 space-y-6">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import storage from "../services/storage";
+import api from "../services/api";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -18,7 +18,7 @@ export default function Transactions() {
 
   // Check if user is authenticated
   useEffect(() => {
-    if (!storage.auth.isAuthenticated()) {
+    if (!api.isAuthenticated()) {
       navigate("/login");
       return;
     }
@@ -29,11 +29,18 @@ export default function Transactions() {
     setIsLoading(true);
     setError("");
     try {
-      const txRes = storage.transactions.list({ limit: 1000 }); // Get all transactions
-      const expenseCats = storage.categories.list("expense");
-      const incomeCats = storage.categories.list("income");
-      setTransactions(Array.isArray(txRes) ? txRes : []);
-      setCategories([...(Array.isArray(expenseCats) ? expenseCats : []), ...(Array.isArray(incomeCats) ? incomeCats : [])]);
+      const txRes = await api.getTransactions();
+      // Backend returns amount as string; normalize to number for display math
+      const normalized = Array.isArray(txRes)
+        ? txRes.map((t) => ({
+            ...t,
+            amount: Number(t.amount),
+            description: t.notes || t.title || "",
+            occurredAt: t.transaction_date || t.created_at || t.createdAt,
+          }))
+        : [];
+      setTransactions(normalized);
+      setCategories([]);
     } catch (e) {
       setError(e.message || "Failed to load transactions");
     } finally {
@@ -62,8 +69,7 @@ export default function Transactions() {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(tx => 
-        tx.description?.toLowerCase().includes(searchLower) ||
-        getCategoryName(tx.categoryId)?.toLowerCase().includes(searchLower)
+        tx.description?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -73,11 +79,7 @@ export default function Transactions() {
     setFilteredTransactions(filtered);
   }, [transactions, filters, categories]);
 
-  function getCategoryName(categoryId) {
-    if (!categoryId) return "Uncategorized";
-    const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : "Unknown Category";
-  }
+  function getCategoryName() { return ""; }
 
   function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
@@ -214,23 +216,23 @@ export default function Transactions() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${
-                        transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
+                        transaction.type === 'income' ? 'bg-green-500' : transaction.type === 'transfer' ? 'bg-blue-500' : 'bg-red-500'
                       }`}></div>
                       <div>
                         <h4 className="text-lg font-medium text-gray-900">
                           {transaction.description || 'No description'}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {getCategoryName(transaction.categoryId)} • {formatDate(transaction.occurredAt)}
+                          {formatDate(transaction.occurredAt)}
                         </p>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className={`text-xl font-semibold ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      transaction.type === 'income' ? 'text-green-600' : transaction.type === 'transfer' ? 'text-blue-600' : 'text-red-600'
                     }`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      {transaction.type === 'income' ? '+' : transaction.type === 'transfer' ? '' : '-'}{formatCurrency(transaction.amount)}
                     </div>
                     <div className="text-sm text-gray-500 capitalize">
                       {transaction.type === 'income' ? 'Credit' : 'Debit'}

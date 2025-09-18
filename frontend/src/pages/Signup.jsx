@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import storage from "../services/storage";
+import api from "../services/api";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -15,7 +15,7 @@ export default function Signup() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (storage.auth.isAuthenticated()) {
+    if (api.isAuthenticated()) {
       navigate("/dashboard");
     }
   }, [navigate]);
@@ -48,11 +48,7 @@ export default function Signup() {
     }
 
     try {
-      const data = await storage.auth.signup({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
+      const data = await api.signup({ name: formData.name, email: formData.email, password: formData.password });
       
       // Show success message
       setMessage({ 

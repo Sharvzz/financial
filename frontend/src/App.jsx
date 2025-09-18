@@ -7,11 +7,11 @@ import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import storage from "./services/storage";
+import api from "./services/api";
 
 // Simple protected route component
 function ProtectedRoute({ children }) {
-  const isAuthed = storage.auth.isAuthenticated();
+  const isAuthed = api.isAuthenticated();
   if (!isAuthed) return <Navigate to="/login" replace />;
   return children;
 }
